@@ -1,0 +1,112 @@
+contract CustomizedVoting {
+    address public contractOwner;
+    address[] public candidateList;
+    mapping(address => uint) public votesReceived;
+    mapping(address => bool) public hasVoted; 
+    address public winner;
+    uint public winningVoteCount = 0;
+
+    enum VotingStatus {NotStarted, Running, Completed}
+    VotingStatus public currentStatus;
+
+    address[] public voterAddresses;
+    uint public voterCount;
+
+    mapping(address => bool) public hasRightToVote;
+
+    constructor () public {
+        contractOwner = msg.sender;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == contractOwner, "Only the contract owner can call this function");
+        _;
+    }
+
+    modifier onlyProvisionedVoter() {
+        require(hasRightToVote[msg.sender], "You do not have the right to vote");
+        _;
+    }
+
+    function toggleStatus() public onlyOwner {
+        if (currentStatus == VotingStatus.Running)
+            currentStatus = VotingStatus.Completed;
+        else
+            currentStatus = VotingStatus.Running;
+    }
+
+    function addCandidate(address candidateAddress) public onlyOwner {
+        candidateList.push(candidateAddress);
+    }
+
+    function setVoterList(address[] memory _voters) public onlyOwner {
+    
+        for (uint i = 0; i < _voters.length; i++) {
+            voterAddresses.push(_voters[i]);
+            hasRightToVote[_voters[i]] = true;
+        }
+        voterCount = _voters.length;
+    }
+
+    function giveRightToVote(address voterAddress) public onlyOwner {
+        hasRightToVote[voterAddress] = true;
+    }
+
+    function revokeRightToVote(address voterAddress) public onlyOwner {
+        hasRightToVote[voterAddress] = false;
+    }
+
+    function castVote(address candidateAddress) public onlyProvisionedVoter {
+        require(isValidCandidate(candidateAddress), "Not a valid candidate");
+        require(currentStatus == VotingStatus.Running, "Voting is not currently active");
+        require(!hasVoted[msg.sender], "You have already voted");
+        
+        votesReceived[candidateAddress]++;
+        hasVoted[msg.sender] = true;
+    } 
+
+    function isValidCandidate(address candidateAddress) public view returns(bool) {
+        for(uint i = 0; i < candidateList.length; i++) {
+            if (candidateList[i] == candidateAddress)
+                return true;
+        }
+        return false;
+    }
+
+    function getVoteCount(address candidateAddress) public view returns(uint) {
+        require(isValidCandidate(candidateAddress), "Not a valid candidate");
+        return votesReceived[candidateAddress];
+    }
+
+    function determineWinner() public {
+        for(uint i = 0; i < candidateList.length; i++) {
+            if (votesReceived[candidateList[i]] > winningVoteCount) {
+                winningVoteCount = votesReceived[candidateList[i]];
+                winner = candidateList[i];
+            }
+        }
+    }
+
+    function getCandidates() public view returns (address[] memory) {
+        return candidateList;
+    }
+ 
+    function isAddressRegistered(address addr) public view returns (bool) {
+        for (uint i = 0; i < voterAddresses.length; i++) {
+            if (voterAddresses[i] == addr) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function getVoters() public view returns (address[] memory) {
+        return voterAddresses;
+    }
+}
+
+
+
+
+
+
