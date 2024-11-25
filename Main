@@ -1,3 +1,5 @@
+pragma solidity ^0.5.3;
+
 contract CustomizedVoting {
     address public contractOwner;
     address[] public candidateList;
@@ -104,9 +106,3 @@ contract CustomizedVoting {
         return voterAddresses;
     }
 }
-
-
-
-
-
-
